@@ -1,0 +1,177 @@
+version: '3.8'
+
+services:
+  robomatic-fe:
+    image: robomatic-fe
+    #build: 
+    #  context: "${DCKERFILE_ROUTE_FE}"
+    #  dockerfile: Dockerfile
+    ports:
+      - "4200:4200"
+    networks:
+      - robomatic-net
+
+  robomatic-core:
+    image: robomatic-core
+    #build:
+    #  context: "${DCKERFILE_ROUTE_CORE}"
+    #  dockerfile: Dockerfile
+    volumes:
+      - /home/edgar/robomatic/github/evidence:/home/evidence
+      - /home/edgar/robomatic/github/cases:/home/cases
+    ports:
+      - "8080:8080"
+    depends_on:
+      - rabbitmq
+      - dbmate
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PWD=${DB_PWD}
+      - RABBITMQ_ADMIN_HOST=${RABBITMQ_ADMIN_HOST}
+      - RABBITMQ_ADMIN_PORT=${RABBITMQ_ADMIN_PORT}
+      - RABBITMQ_ADMIN_LOGIN=${RABBITMQ_ADMIN_LOGIN}
+      - RABBITMQ_ADMIN_PASSWORD=${RABBITMQ_ADMIN_PASSWORD}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+    networks:
+      - robomatic-net
+
+  robomatic-test-executor-api:
+    image: robomatic-test-executor-api
+    #build:
+    #  context: "${DCKERFILE_ROUTE_EXECUTOR}"
+    #  dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - /home/edgar/robomatic/github/robomatic-test-executor-api/resources:/home/robomatic-test-executor-api/resources
+      - /home/edgar/robomatic/github/evidence:/home/evidence
+      - /home/edgar/robomatic/github/cases:/home/cases
+    ports:
+      - "5007:5007"
+    networks:
+      - robomatic-net
+
+  robomatic-file-manager-api:
+    image: robomatic-file-manager-api
+    #build:
+    #  context: "${DCKERFILE_ROUTE_FILE_MANAGER}"
+    #  dockerfile: Dockerfile
+    volumes:
+      - /home/edgar/robomatic/github/evidence:/home/evidence
+    ports:
+      - "5000:5000"
+    networks:
+      - robomatic-net
+
+  robomatic-rest-api:
+    image: robomatic-rest-api
+    #build:
+    #  context: "${DCKERFILE_ROUTE_REST}"
+    #  dockerfile: Dockerfile
+    ports:
+      - "5002:5002"
+    networks:
+      - robomatic-net
+
+  robomatic-database-api:
+    image: robomatic-database-api
+    #build:
+    #  context: "${DCKERFILE_ROUTE_DATABASE}"
+    #  dockerfile: Dockerfile
+    ports:
+      - "5003:5003"
+    networks:
+      - robomatic-net
+
+  robomatic-gdrive-api:
+    image: robomatic-gdrive-api
+    #build:
+    #  context: "${DCKERFILE_ROUTE_GDRIVE}"
+    #  dockerfile: Dockerfile
+    volumes:
+      - /home/edgar/robomatic/github/robomatic-gdrive-api/resources:/home/robomatic-gdrive-api/resources
+    ports:
+      - "5008:5008"
+    networks:
+      - robomatic-net
+
+  robomatic-email-ms:
+    image: robomatic-email-ms
+    #build:
+    #  context: "${DCKERFILE_ROUTE_EMAIL}"
+    #  dockerfile: Dockerfile
+    volumes:
+      - /home/edgar/robomatic/github/robomatic-email-ms/resource:/home/resource/templates
+    ports:
+      - "5006:5006"
+    networks:
+      - robomatic-net
+
+  robomatic-scheduler-api:
+    image: robomatic-scheduler-api
+    #build:
+    #  context: "${DCKERFILE_ROUTE_SCHEDULER}"
+    #  dockerfile: Dockerfile
+    ports:
+      - "5005:5005"
+    networks:
+      - robomatic-net
+
+  robomatic-jms-api:
+    build:
+      context: "${DCKERFILE_ROUTE_JMS}"
+      dockerfile: Dockerfile
+    ports:
+      - "5004:5004"
+    networks:
+      - robomatic-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    #build:
+    #  context: "${DCKERFILE_ROUTE_RABBITMQ}"
+    #  dockerfile: Dockerfile
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+    - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+    - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    - RABBITMQ_NODENAME=amqp-srv1
+    - RABBITMQ_CONFIG_DEFAULTACCOUNT=false
+    - RABBITMQ_CONFIG_MINMEMORY=1024
+    - RABBITMQ_CONFIG_MAXMEMORY=4096
+    networks:
+      - robomatic-net
+
+  docker-postgresql:
+    image: postgres:9.6
+    restart: always
+    volumes:
+      - /home/edgar/robomatic/postgresql/data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+    - POSTGRES_USER=${POSTGRES_USER}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - robomatic-net
+  
+  dbmate:
+    image: vutreras/dbmate
+    volumes:
+      - /home/edgar/robomatic/github/robomatic-migrations:/db/migrations
+    depends_on:
+      - docker-postgresql
+    environment:
+    - DOCKERIZE_VERSION=v0.6.1
+    entrypoint: ["/bin/sh", "-c"]
+    command: "/db/migrations/init_dbmate.sh"
+    networks:
+      - robomatic-net
+
+networks:
+  robomatic-net:
+    driver: bridge

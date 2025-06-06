@@ -1,15 +1,15 @@
 version: '3.8'
 
 services:
-  robomatic-fe:
-    image: robomatic-fe
+  #robomatic-fe:
+  # image: robomatic-fe
     #build: 
     #  context: "${DCKERFILE_ROUTE_FE}"
     #  dockerfile: Dockerfile
-    ports:
-      - "4200:4200"
-    networks:
-      - robomatic-net
+    # ports:
+    #  - "4200:4200"
+    #networks:
+      #  - robomatic-net
 
   robomatic-core:
     image: robomatic-core
@@ -17,8 +17,8 @@ services:
     #  context: "${DCKERFILE_ROUTE_CORE}"
     #  dockerfile: Dockerfile
     volumes:
-      - /home/edgar/robomatic/github/evidence:/home/evidence
-      - /home/edgar/robomatic/github/cases:/home/cases
+      - /home/edgar/robomatic/local/evidence:/home/evidence
+      - /home/edgar/robomatic/local/cases:/home/cases
     ports:
       - "8080:8080"
     depends_on:
@@ -45,9 +45,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
-      - /home/edgar/robomatic/github/robomatic-test-executor-api/resources:/home/robomatic-test-executor-api/resources
-      - /home/edgar/robomatic/github/evidence:/home/evidence
-      - /home/edgar/robomatic/github/cases:/home/cases
+      - /home/edgar/robomatic/proyects/robomatic-test-executor-api/resources:/home/robomatic-test-executor-api/resources
+      - /home/edgar/robomatic/local/evidence:/home/evidence
+      - /home/edgar/robomatic/local/cases:/home/cases
     ports:
       - "5007:5007"
     networks:
@@ -59,7 +59,7 @@ services:
     #  context: "${DCKERFILE_ROUTE_FILE_MANAGER}"
     #  dockerfile: Dockerfile
     volumes:
-      - /home/edgar/robomatic/github/evidence:/home/evidence
+      - /home/edgar/robomatic/local/evidence:/home/evidence
     ports:
       - "5000:5000"
     networks:
@@ -75,15 +75,15 @@ services:
     networks:
       - robomatic-net
 
-  robomatic-database-api:
-    image: robomatic-database-api
-    #build:
-    #  context: "${DCKERFILE_ROUTE_DATABASE}"
-    #  dockerfile: Dockerfile
-    ports:
-      - "5003:5003"
-    networks:
-      - robomatic-net
+  #robomatic-database-api:
+  ##  image: robomatic-database-api
+   # #build:
+   # #  context: "${DCKERFILE_ROUTE_DATABASE}"
+   # #  dockerfile: Dockerfile
+   # ports:
+   #   - "5003:5003"
+   # networks:
+   #   - robomatic-net
 
   robomatic-gdrive-api:
     image: robomatic-gdrive-api
@@ -91,7 +91,7 @@ services:
     #  context: "${DCKERFILE_ROUTE_GDRIVE}"
     #  dockerfile: Dockerfile
     volumes:
-      - /home/edgar/robomatic/github/robomatic-gdrive-api/resources:/home/robomatic-gdrive-api/resources
+      - /home/edgar/robomatic/proyects/robomatic-gdrive-api/resources:/home/robomatic-gdrive-api/resources
     ports:
       - "5008:5008"
     networks:
@@ -103,7 +103,8 @@ services:
     #  context: "${DCKERFILE_ROUTE_EMAIL}"
     #  dockerfile: Dockerfile
     volumes:
-      - /home/edgar/robomatic/github/robomatic-email-ms/resource:/home/resource/templates
+      - /home/edgar/robomatic/proyects/robomatic-email-ms/resource/templates:/home/resource/templates
+      - /home/edgar/robomatic/local/evidence:/home/evidence
     ports:
       - "5006:5006"
     networks:
@@ -114,19 +115,22 @@ services:
     #build:
     #  context: "${DCKERFILE_ROUTE_SCHEDULER}"
     #  dockerfile: Dockerfile
+    depends_on:
+      docker-postgresql:
+        condition: service_healthy
     ports:
       - "5005:5005"
     networks:
       - robomatic-net
 
-  robomatic-jms-api:
-    build:
-      context: "${DCKERFILE_ROUTE_JMS}"
-      dockerfile: Dockerfile
-    ports:
-      - "5004:5004"
-    networks:
-      - robomatic-net
+        #robomatic-jms-api:
+        # build:
+        #context: "${DCKERFILE_ROUTE_JMS}"
+        #dockerfile: Dockerfile
+        #ports:
+        # - "5004:5004"
+        #networks:
+        #- robomatic-net
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -156,15 +160,21 @@ services:
     environment:
     - POSTGRES_USER=${POSTGRES_USER}
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
     networks:
       - robomatic-net
   
   dbmate:
     image: vutreras/dbmate
     volumes:
-      - /home/edgar/robomatic/github/robomatic-migrations:/db/migrations
+      - /home/edgar/robomatic/proyects/robomatic-migrations:/db/migrations
     depends_on:
-      - docker-postgresql
+      docker-postgresql:
+        condition: service_healthy
     environment:
     - DOCKERIZE_VERSION=v0.6.1
     entrypoint: ["/bin/sh", "-c"]
